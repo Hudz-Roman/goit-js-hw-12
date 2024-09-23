@@ -10,6 +10,7 @@ const loadMoreBtn = document.querySelector('.load-more');
 
 let query = '';
 let page = 1;
+let totalPages = 0;
 
 loadMoreBtn.classList.add('hidden');
 
@@ -47,6 +48,7 @@ form.addEventListener('submit', async event => {
   try {
     const data = await fetchImages(query, page);
     hideLoader();
+    totalPages = Math.ceil(data.totalHits / data.hits.length);
     if (data.hits.length === 0) {
       iziToast.info({
         title: 'Info',
@@ -57,7 +59,11 @@ form.addEventListener('submit', async event => {
       loadMoreBtn.classList.add('hidden');
     } else {
       renderGallery(data.hits);
-      loadMoreBtn.classList.remove('hidden');
+      if (page < totalPages) {
+        loadMoreBtn.classList.remove('hidden');
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
     }
   } catch (error) {
     hideLoader();
@@ -70,8 +76,17 @@ form.addEventListener('submit', async event => {
 });
 
 loadMoreBtn.addEventListener('click', async () => {
+  if (page >= totalPages) {
+    iziToast.info({
+      title: 'Info',
+      message: `We're sorry, but you've reached the end of search results.`,
+      position: 'topRight',
+    });
+    loadMoreBtn.classList.add('hidden');
+    return;
+  }
   page += 1;
-  loadMoreBtn.disabled = true;
+  loadMoreBtn.classList.add('hidden');
   showLoader();
   try {
     const data = await fetchImages(query, page);
@@ -79,14 +94,16 @@ loadMoreBtn.addEventListener('click', async () => {
     if (data.hits.length > 0) {
       renderGallery(data.hits);
       smoothScroll();
-      loadMoreBtn.disabled = false;
-    } else {
-      iziToast.info({
-        title: 'Info',
-        message: `We're sorry, but you've reached the end of search results.`,
-        position: 'topRight',
-      });
-      loadMoreBtn.classList.add('hidden');
+      if (page < totalPages) {
+        loadMoreBtn.classList.remove('hidden');
+      } else {
+        loadMoreBtn.classList.add('hidden');
+        iziToast.info({
+          title: 'Info',
+          message: `We're sorry, but you've reached the end of search results.`,
+          position: 'topRight',
+        });
+      }
     }
   } catch (error) {
     hideLoader();
@@ -95,6 +112,5 @@ loadMoreBtn.addEventListener('click', async () => {
       message: error.message,
       position: 'topRight',
     });
-    loadMoreBtn.disabled = false;
   }
 });
